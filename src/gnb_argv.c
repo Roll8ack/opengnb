@@ -89,7 +89,7 @@ void gnb_setup_es_argv(char *es_argv_string);
 #define SET_IF_DUMP                    (GNB_OPT_INIT + 36)
 #define SET_PF_TRACE                   (GNB_OPT_INIT + 37)
 #define SET_PF_ROUTE                   (GNB_OPT_INIT + 38)
-#define SET_PF_ROUTE_OPT               (GNB_OPT_INIT + 39)
+#define SET_PF_ROUTE_BITS               (GNB_OPT_INIT + 39)
 
 #define SET_TUN                        (GNB_OPT_INIT + 40)
 #define SET_INDEX_WORKER               (GNB_OPT_INIT + 41)
@@ -188,7 +188,7 @@ gnb_conf_t* gnb_argv(int argc,char *argv[]) {
     conf->index_service_log_level = GNB_LOG_LEVEL_UNSET;
     conf->detect_log_level  = GNB_LOG_LEVEL_UNSET;
 
-	conf->pf_route_opt = 0;
+	conf->pf_route_bits = 0x0;
 
     conf->udp_socket_type = GNB_ADDR_TYPE_IPV4 | GNB_ADDR_TYPE_IPV6;
 
@@ -328,7 +328,7 @@ gnb_conf_t* gnb_argv(int argc,char *argv[]) {
       { "ur1",                       required_argument,  0,  SET_UR1 },
 
       { "pf-route",                  required_argument,  0,  SET_PF_ROUTE },
-	  { "pf-route-opt",              required_argument,  0,  SET_PF_ROUTE_OPT },
+	  { "pf-route-bits",             required_argument,  0,  SET_PF_ROUTE_BITS },
 
       { "unified-forwarding",        required_argument,  0, 'U' },
       { "standard-forwarding",       required_argument,  0, SET_STANDARD_FORWARDING},
@@ -606,8 +606,8 @@ gnb_conf_t* gnb_argv(int argc,char *argv[]) {
         case SET_PF_ROUTE:
             snprintf(conf->pf_route, NAME_MAX, "%s", optarg);
             break;
-		case SET_PF_ROUTE_OPT:
-			conf->pf_route_opt      = (uint8_t)strtoul(optarg, NULL, 10);
+		case SET_PF_ROUTE_BITS:
+			conf->pf_route_bits      = (uint32_t)strtoul(optarg, NULL, 0);
 			break;
         case SET_TUN:
             if ( !strncmp(optarg, "on", 2) ) {
@@ -991,6 +991,8 @@ static void show_useage(int argc,char *argv[]) {
     printf("      --address-secure              hide part of ip address in logs \"on\",\"off\" default:\"on\"\n");
     printf("      --if-dump                     dump the interface data frame \"on\",\"off\" default:\"off\"\n");
     printf("      --pf-route                    packet filter route\n");
+	printf("      --pf-route-bits               pf route 32bits options 0x1:forwading without key exchange\n");
+
     printf("      --safe-index                  \"on\",\"off\" default:\"off\"\n");
     printf("      --multi-socket                \"on\",\"off\" default:\"off\"\n");
 

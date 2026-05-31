@@ -115,8 +115,9 @@ typedef struct _gnb_conf_t {
 	//用户自定义的 packet filter 模块
 	char pf_route[NAME_MAX];
 	//用户自定义的 packet filter 模块启动选项
-	uint8_t pf_route_opt;
-
+	//uint8_t pf_route_opt;
+	uint8_t pf_route_bits;
+	
     #define GNB_UNIFIED_FORWARDING_OFF          0
     #define GNB_UNIFIED_FORWARDING_FORCE        1
     #define GNB_UNIFIED_FORWARDING_AUTO         2

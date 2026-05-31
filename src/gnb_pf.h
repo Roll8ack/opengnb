@@ -44,7 +44,6 @@ gnb_pf_inet:
 └──────────────────────────┴────────────────────────┴─────────────────────────────────────┴───────┘
 */
 
-
 #include <stdio.h>
 #include <stdint.h>
 
@@ -81,7 +80,7 @@ typedef struct _gnb_pf_ctx_t {
 	uint8_t direct_forwarding;
 	uint8_t std_forwarding;
 	uint8_t universal_udp4_relay;
-}gnb_pf_ctx_t;
+} gnb_pf_ctx_t;
 
 #define GNB_PF_ERROR    0xFF    //当前PF模块过程中出错了，上层调用应该终止这个分组的处理
 #define GNB_PF_NEXT     0x00    //当前PF模块处理完成，可以进行一个PF模块的处理，如果是最后一个调用的PF模块， 上层调用
@@ -138,12 +137,12 @@ typedef struct _gnb_pf_t {
       inet packet filter step 2:
     */
 	gnb_pf_chain_cb_t    pf_inet_route;
-
     /*
       inet packet filter step 3:
       对来自其他节点的 payload 进行中继时可以在此 call back 中对中转的 payload 加密
     */
 	gnb_pf_chain_cb_t    pf_inet_fwd;
+
 	gnb_pf_release_cb_t  pf_release;
 } gnb_pf_t;
 

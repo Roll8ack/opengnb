@@ -708,19 +708,13 @@ void local_node_file_config(gnb_conf_t *conf) {
                 exit(1);
             }
         }
-		if ( !strncmp(line_buffer, "pf-route-opt", sizeof("pf-route-opt")-1) ) {
-			num = sscanf(line_buffer, "%32[^ ] %d", field, &value_int);
+		if ( !strncmp(line_buffer, "pf-route-bits", sizeof("pf-route-bits")-1) ) {
+			num = sscanf(line_buffer, "%32[^ ] %16s", field, value);
 			if ( 2 != num ) {
-				printf("config %s error in [%s]\n", "pf-route-opt", node_conf_file);
+				printf("config %s error in [%s]\n", "pf-route-bits", node_conf_file);
 				exit(1);
 			}
-			if ( value_int > 255 ) {
-				value_int = 255;
-			}
-			if ( value_int < 0 ) {
-				value_int = 0;
-			}
-			conf->pf_route_opt = (uint8_t)value_int;
+			conf->pf_route_bits = (uint32_t)strtoul(value, NULL, 0);
 		}
         if ( !strncmp(line_buffer, "crypto", sizeof("crypto")-1) ) {
             num = sscanf(line_buffer, "%32[^ ] %16s", field, value);

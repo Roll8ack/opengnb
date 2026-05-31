@@ -51,7 +51,6 @@ static void pf_init_cb(gnb_core_t *gnb_core, gnb_pf_t *pf){
 }
 
 static void pf_conf_cb(gnb_core_t *gnb_core, gnb_pf_t *pf) {
-
 }
 
 /*
@@ -70,6 +69,7 @@ static int pf_tun_frame_cb(gnb_core_t *gnb_core, gnb_pf_t *pf, gnb_pf_ctx_t *pf_
 	}
 	struct ip6_hdr  *ip6_frame_head;
 	uint32_t dst_ip_int;
+	int is_same_subnet = 0;
 	if ( 0x6 == ip_frame_head->version ) {
 		ip6_frame_head = (struct ip6_hdr *)(pf_ctx->fwd_payload->data + gnb_core->tun_payload_offset);
 		dst_ip_int = ip6_frame_head->ip6_dst.__in6_u.__u6_addr32[3];
@@ -83,6 +83,20 @@ static int pf_tun_frame_cb(gnb_core_t *gnb_core, gnb_pf_t *pf, gnb_pf_ctx_t *pf_
 
 handle_ip_frame:
 	pf_ctx->dst_node = gnb_select_route4_node(gnb_core,dst_ip_int);
+	if ( NULL == pf_ctx->dst_node ) {
+		if ( gnb_core->conf->pf_route_bits & 0x1 ) {
+			//当 gnb_core->conf->pf_route_bits bit0=1时 允许把同网段的 payload 转发到 forwarding node
+			if ( 0x6 == ip_frame_head->version ) {
+				is_same_subnet = gnb_determine_subnet6_prefixlen96( *(struct in6_addr *)&ip6_frame_head->ip6_dst, gnb_core->local_node->tun_ipv6_addr);
+			}
+			if ( 0x4 == ip_frame_head->version ) {
+				is_same_subnet = gnb_determine_subnet4( *(struct in_addr *)&ip_frame_head->daddr, gnb_core->local_node->tun_addr4, gnb_core->local_node->tun_netmask_addr4);
+			}
+		}
+		if ( is_same_subnet ) {
+			pf_ctx->dst_node = gnb_core->select_fwd_node;
+		}
+	}
 
 	if ( NULL==pf_ctx->dst_node ) {
 		return GNB_PF_DROP;
@@ -429,6 +443,7 @@ finish:
 	return ret;
 }
 
+/* 写入tun之前做最后的检查 */
 static int pf_inet_fwd_cb(gnb_core_t *gnb_core, gnb_pf_t *pf, gnb_pf_ctx_t *pf_ctx) {
 	if ( GNB_PF_FWD_TUN != pf_ctx->pf_fwd ) {
 		return pf_ctx->pf_status;
@@ -437,6 +452,7 @@ static int pf_inet_fwd_cb(gnb_core_t *gnb_core, gnb_pf_t *pf, gnb_pf_ctx_t *pf_c
 	struct ip6_hdr *ip6_frame_head = (struct ip6_hdr*)pf_ctx->ip_frame;
 	uint32_t dst_ip_int;
 	gnb_node_t *dst_node;
+	int is_same_subnet = 0;
 	if ( 0x6 == ip_frame_head->version ) {
 		ip6_frame_head = (struct ip6_hdr *)(pf_ctx->fwd_payload->data + gnb_core->tun_payload_offset);
 		dst_ip_int = ip6_frame_head->ip6_dst.__in6_u.__u6_addr32[3];
@@ -447,6 +463,21 @@ static int pf_inet_fwd_cb(gnb_core_t *gnb_core, gnb_pf_t *pf, gnb_pf_ctx_t *pf_c
 	} else {
 		pf_ctx->pf_status = GNB_PF_ERROR;
 		goto finish;
+	}
+	if ( gnb_core->conf->pf_route_bits & 0x1 ) {
+		//当 gnb_core->conf->pf_route_bits bit0=1 时 允许把同网段的 payload 转发到 forwarding node
+		if ( 0x6 == ip_frame_head->version ) {
+			is_same_subnet = gnb_determine_subnet6_prefixlen96( *(struct in6_addr *)&ip6_frame_head->ip6_src, gnb_core->local_node->tun_ipv6_addr);
+		}
+		if ( 0x4 == ip_frame_head->version ) {
+			is_same_subnet = gnb_determine_subnet4( *(struct in_addr *)&ip_frame_head->daddr, gnb_core->local_node->tun_addr4, gnb_core->local_node->tun_netmask_addr4);
+		}
+		if ( is_same_subnet ) {
+			goto finish;
+		} else {
+			pf_ctx->pf_status = GNB_PF_NOROUTE;
+			goto finish;
+		}
 	}
 
 	//根据目的ip地址做检查
